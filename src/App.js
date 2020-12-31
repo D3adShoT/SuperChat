@@ -1,6 +1,8 @@
-import logo from './logo.svg';
+import React,{ useState } from 'react'
 import './App.css';
 import firebase from 'firebase/app'
+
+import 'firebase/analytics';
 import 'firebase/firestore';
 import 'firebase/auth'
 import { useAuthState } from 'react-firebase-hooks/auth'
@@ -9,51 +11,8 @@ import { useCollectionData } from 'react-firebase-hooks/firestore';
 // import SignIn from './PageComponents/SignIn';
 
 
-firebase.initializeApp({
-    apiKey: "AIzaSyAs-i7k8zP8hRp8MRj7G3AdRn6P8E0rnsg",
-    authDomain: "superchats-234b9.firebaseapp.com",
-    projectId: "superchats-234b9",
-    storageBucket: "superchats-234b9.appspot.com",
-    messagingSenderId: "977933243636",
-    appId: "1:977933243636:web:00c7ec4ca2ab27d2cfbaa1",
-    measurementId: "G-J484QWZ3N4"
-})  
-
 const auth = firebase.auth()
 const firestore = firebase.firestore()
-
-function SignIn(){
-  const signInwithGoogle=()=> {
-    const provider = new firebase.auth.GoogleAuthProvider()
-    auth.signInWithPopup(provider)
-  }
-    return(
-      <button onClick={signInwithGoogle}>Sign In With Google</button>
-    )
-}
-function Chatroom(){
-  const messageRef = firestore.collection("Messages")
-  const query = messageRef.orderBy('createdAt').limit(25)
-  const [Messages] = useCollectionData(query,{idField:'id'})
-  
-
-  
-  return(<div>
-    {Messages && Messages.map(msg=> <ChatMessage key={msg.id} value={msg} />)}
-
-
-  </div>
-  )
-}
-
-function ChatMessage(props){
-  const { text,uid } = props.message
-  return(<h1>{text}</h1>)
-}
-function SignOut(){
-  return auth.currentUser && (<button onClick={()=>auth.signOut}>Sign Out</button>)
-}
-
 function App() {
   const [user] = useAuthState(auth)
 
@@ -74,4 +33,59 @@ function App() {
   );
 }
 
-export default App;
+function SignIn(){
+  const signInwithGoogle=()=> {
+    const provider = new firebase.auth.GoogleAuthProvider()
+    auth.signInWithPopup(provider)
+  }
+    return(
+      <button onClick={signInwithGoogle}>Sign In With Google</button>
+    )
+}
+function Chatroom(){
+  const messageRef = firestore.collection('Messages')
+  const query = messageRef.orderBy('createdAt').limit(25)
+  const [Messages] = useCollectionData(query,{idField:'id'})
+  const [formValue,setFormValue] = useState('')
+  const sendMessage = async(e) => {
+    e.preventDefault()
+    const { uid,photoURL } = auth.currentUser
+    await messageRef.add({
+      text:formValue,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      uid,
+      photoURL
+    }) 
+  }
+
+  
+  return(<div><div>
+    {Messages && Messages.map(msg=> <ChatMessage key={msg.id} value={msg} />)}
+    </div>
+    <form onSubmit={sendMessage}>
+    <input value={formValue} onChange={(e)=> setFormValue(e.target.value)}/>
+    <button type = "submit>">Send</button>
+  </form>
+  
+  </div>
+  )
+}
+
+function ChatMessage(props){
+  const { text,uid } = props.message
+  const messageClass = uid === auth.currentUser.uid ? 'Sent' : 'Recieved'
+
+
+  return(<div className={`message ${messageClass}`}>
+    {/* <img src = {photoURL} /> */}
+    <p>{text}</p> 
+
+  
+  </div>)
+}
+// function SignOut(){
+//   return auth.currentUser && (<button onClick={()=>auth.signOut}>Sign Out</button>)
+// }
+
+
+export const firebase = !firebase.apps.length ? fb.initializeApp(firebaseConfig) : firebase.app();
